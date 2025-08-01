@@ -1,15 +1,16 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
-const router = express.Router();
+const passport = require("passport");
 
+const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // 🗄️ Temporary In-Memory DB
 const users = [];
 
 /**
- * ✅ Google Authentication
+ * ✅ Google Authentication (Token-based)
  * Endpoint: POST /auth/google
  */
 router.post("/google", async (req, res) => {
@@ -69,6 +70,54 @@ router.post("/google", async (req, res) => {
     res.status(401).json({ message: "Invalid Google token" });
   }
 });
+
+/**
+ * ✅ Popup-Based Google Authentication (OAuth)
+ * Endpoint: GET /auth/google
+ */
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+/**
+ * ✅ Google OAuth Callback
+ * Endpoint: GET /auth/google/callback
+ */
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: process.env.FRONTEND_URL }),
+  (req, res) => {
+    // Generate a JWT for the session
+    const userProfile = req.user;
+
+    // Check if user exists
+    let user = users.find((u) => u.googleId === userProfile.id);
+
+    if (!user) {
+      user = {
+        id: users.length + 1,
+        googleId: userProfile.id,
+        email: userProfile.email,
+        name: userProfile.displayName,
+        picture: userProfile.photo || "",
+        formData: {},
+      };
+      users.push(user);
+    }
+
+    const jwtToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET || "default_secret",
+      { expiresIn: "7d" }
+    );
+
+    // Redirect to frontend with token as query param
+    res.redirect(
+      `${process.env.FRONTEND_URL}/auth-success?token=${jwtToken}`
+    );
+  }
+);
 
 /**
  * ✅ Get logged-in user info
