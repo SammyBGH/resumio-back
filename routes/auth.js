@@ -51,7 +51,7 @@ router.post("/google", async (req, res) => {
     // Create JWT for session
     const jwtToken = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "default_secret", // ✅ fallback for Render
       { expiresIn: "7d" }
     );
 
@@ -84,7 +84,7 @@ router.get("/me", (req, res) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_secret");
     const user = users.find((u) => u.id === decoded.userId);
 
     if (!user) {

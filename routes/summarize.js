@@ -33,7 +33,7 @@ router.post('/', (req, res) => {
     summary = `I am skilled in ${capitalizedSkills.join(', ')}, and ${last}. I use these technologies to build modern and user-friendly applications.`;
   }
 
-  res.json({ summary });
+  return res.status(200).json({ summary });
 });
 
 module.exports = router;

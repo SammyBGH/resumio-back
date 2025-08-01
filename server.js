@@ -12,9 +12,15 @@ dotenv.config();
 
 const app = express();
 
+// ✅ Allowed origins (local + deployed frontend)
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'https://resumio-five.vercel.app'
+];
+
 // ✅ Middlewares
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
 }));
 app.use(express.json());
@@ -23,7 +29,10 @@ app.use(session({
   secret: process.env.JWT_SECRET || 'secret123',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // set to true in production with https
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', // true only on HTTPS
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -34,7 +43,7 @@ app.use('/auth', authRoute);
 
 // ✅ Default route
 app.get('/', (req, res) => {
-  res.send('Server is running...');
+  res.send('✅ Server is running on Render...');
 });
 
 // ✅ Error handling
@@ -43,6 +52,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Server error' });
 });
 
-// ✅ Server
+// ✅ Server (Render uses process.env.PORT)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
