@@ -4,8 +4,8 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const BASE_URL =
-  process.env.RENDER_EXTERNAL_URL || // Render-provided deployment URL
-  process.env.BACKEND_URL || 
+  process.env.RENDER_EXTERNAL_URL ||
+  process.env.BACKEND_URL ||
   'http://localhost:5000';
 
 passport.use(
@@ -16,7 +16,6 @@ passport.use(
       callbackURL: `${BASE_URL}/auth/google/callback`,
     },
     (accessToken, refreshToken, profile, done) => {
-      // You can save user to DB here if needed
       const user = {
         id: profile.id,
         displayName: profile.displayName,

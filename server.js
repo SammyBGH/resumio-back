@@ -17,12 +17,11 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://resumio-five.vercel.app',
   process.env.FRONTEND_URL
-].filter(Boolean); // remove undefined entries
+].filter(Boolean);
 
 // ✅ CORS middleware
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -40,10 +39,11 @@ app.use(cookieParser());
 app.use(session({
   secret: process.env.JWT_SECRET || 'secret123',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Only secure on HTTPS
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in prod
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   }
 }));
 
@@ -54,7 +54,7 @@ app.use(passport.session());
 app.use('/api/summarize', summarizeRoute);
 app.use('/auth', authRoute);
 
-// ✅ Default route
+// ✅ Health check route
 app.get('/', (req, res) => {
   res.send('✅ Server is running on Render...');
 });

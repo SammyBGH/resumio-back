@@ -5,7 +5,7 @@ const router = express.Router();
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// 🗄️ Temporary In-Memory DB (replace with MongoDB)
+// 🗄️ Temporary In-Memory DB
 const users = [];
 
 /**
@@ -20,7 +20,7 @@ router.post("/google", async (req, res) => {
   }
 
   try {
-    // Verify the Google token
+    // Verify Google token
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -32,26 +32,26 @@ router.post("/google", async (req, res) => {
     let user = users.find((u) => u.googleId === payload.sub);
 
     if (!user) {
-      // New user registration
+      // New user
       user = {
         id: users.length + 1,
         googleId: payload.sub,
         email: payload.email,
         name: payload.name,
-        picture: payload.picture || "", // ✅ Ensure picture field is always included
-        formData: {}, // To store resume progress later
+        picture: payload.picture || "",
+        formData: {},
       };
       users.push(user);
     } else {
-      // ✅ Always update picture and name in case they change
-      user.picture = payload.picture || user.picture || "";
+      // Always refresh latest Google info
+      user.picture = payload.picture || user.picture;
       user.name = payload.name || user.name;
     }
 
-    // Create JWT for session
+    // Generate session token
     const jwtToken = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET || "default_secret", // ✅ fallback for Render
+      process.env.JWT_SECRET || "default_secret",
       { expiresIn: "7d" }
     );
 
