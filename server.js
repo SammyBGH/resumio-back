@@ -8,7 +8,7 @@ const passport = require('./middlewares/passport');
 const summarizeRoute = require('./routes/summarize');
 const authRoute = require('./routes/auth');
 const resumeRoutes = require('./routes/resumeRoutes');
-const paymentRoutes = require('./routes/paymentroutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const path = require('path');
 
 dotenv.config();
