@@ -2,12 +2,10 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const passport = require("passport");
+const User = require("../models/User");
 
 const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-// 🗄️ Temporary In-Memory DB
-const users = [];
 
 /**
  * ✅ Google Authentication (Token-based)
@@ -21,7 +19,6 @@ router.post("/google", async (req, res) => {
   }
 
   try {
-    // Verify Google token
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -29,37 +26,33 @@ router.post("/google", async (req, res) => {
 
     const payload = ticket.getPayload();
 
-    // Check if user already exists
-    let user = users.find((u) => u.googleId === payload.sub);
+    // Check or create user
+    let user = await User.findOne({ googleId: payload.sub });
 
     if (!user) {
-      // New user
-      user = {
-        id: users.length + 1,
+      user = new User({
         googleId: payload.sub,
         email: payload.email,
         name: payload.name,
         picture: payload.picture || "",
-        formData: {},
-      };
-      users.push(user);
+      });
+      await user.save();
     } else {
-      // Always refresh latest Google info
+      user.name = payload.name;
       user.picture = payload.picture || user.picture;
-      user.name = payload.name || user.name;
+      await user.save();
     }
 
-    // Generate session token
     const jwtToken = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET || "default_secret",
+      { userId: user._id },
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
     res.status(200).json({
       token: jwtToken,
       user: {
-        id: user.id,
+        id: user._id,
         name: user.name,
         email: user.email,
         picture: user.picture || "",
@@ -87,35 +80,17 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: process.env.FRONTEND_URL }),
-  (req, res) => {
-    // Generate a JWT for the session
-    const userProfile = req.user;
-
-    // Check if user exists
-    let user = users.find((u) => u.googleId === userProfile.id);
-
-    if (!user) {
-      user = {
-        id: users.length + 1,
-        googleId: userProfile.id,
-        email: userProfile.email,
-        name: userProfile.displayName,
-        picture: userProfile.photo || "",
-        formData: {},
-      };
-      users.push(user);
-    }
+  async (req, res) => {
+    const user = req.user;
 
     const jwtToken = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET || "default_secret",
+      { userId: user._id },
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Redirect to frontend with token as query param
-    res.redirect(
-      `${process.env.FRONTEND_URL}/auth-success?token=${jwtToken}`
-    );
+    // Redirect with token to frontend
+    res.redirect(`${process.env.FRONTEND_URL}/auth-success?token=${jwtToken}`);
   }
 );
 
@@ -123,7 +98,7 @@ router.get(
  * ✅ Get logged-in user info
  * Endpoint: GET /auth/me
  */
-router.get("/me", (req, res) => {
+router.get("/me", async (req, res) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -133,8 +108,8 @@ router.get("/me", (req, res) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_secret");
-    const user = users.find((u) => u.id === decoded.userId);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -142,7 +117,7 @@ router.get("/me", (req, res) => {
 
     res.json({
       user: {
-        id: user.id,
+        id: user._id,
         name: user.name,
         email: user.email,
         picture: user.picture || "",

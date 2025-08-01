@@ -1,6 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const dotenv = require('dotenv');
+const User = require('../models/User');
 dotenv.config();
 
 const BASE_URL =
@@ -15,24 +16,40 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: `${BASE_URL}/auth/google/callback`,
     },
-    (accessToken, refreshToken, profile, done) => {
-      const user = {
-        id: profile.id,
-        displayName: profile.displayName,
-        email: profile.emails && profile.emails[0]?.value,
-        photo: profile.photos && profile.photos[0]?.value,
-      };
-      return done(null, user);
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Find or create user in MongoDB
+        let user = await User.findOne({ googleId: profile.id });
+
+        if (!user) {
+          user = new User({
+            googleId: profile.id,
+            email: profile.emails && profile.emails[0]?.value,
+            name: profile.displayName,
+            picture: profile.photos && profile.photos[0]?.value,
+          });
+          await user.save();
+        }
+
+        return done(null, user);
+      } catch (err) {
+        return done(err, null);
+      }
     }
   )
 );
 
 passport.serializeUser((user, done) => {
-  done(null, user);
+  done(null, user.id);
 });
 
-passport.deserializeUser((user, done) => {
-  done(null, user);
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
 });
 
 module.exports = passport;
