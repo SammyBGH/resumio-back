@@ -20,15 +20,20 @@ router.get("/verify/:reference", async (req, res) => {
     const { status, data } = response.data;
 
     if (status && data.status === "success") {
-      // Update resume payment status
-      await Resume.findOneAndUpdate(
-        { _id: data.metadata.resumeId },
-        { paymentStatus: "success" }
-      );
+      const resumeId = data.metadata?.resumeId;
+
+      if (resumeId) {
+        await Resume.findByIdAndUpdate(resumeId, { paymentStatus: "success" });
+      } else {
+        console.warn("⚠️ No resumeId found in Paystack metadata.");
+      }
+
       return res.json({ success: true, data });
     }
-    res.json({ success: false });
+
+    res.json({ success: false, message: "Payment verification failed" });
   } catch (error) {
+    console.error("❌ Payment verification error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -48,6 +53,7 @@ router.get("/payment-status/:resumeId", async (req, res) => {
       paid: resume.paymentStatus === "success",
     });
   } catch (error) {
+    console.error("❌ Error fetching payment status:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
