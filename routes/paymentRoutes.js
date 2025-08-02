@@ -3,6 +3,9 @@ const axios = require("axios");
 const Resume = require("../models/Resume");
 const router = express.Router();
 
+/**
+ * ✅ Verify payment with Paystack (one-time after payment)
+ */
 router.get("/verify/:reference", async (req, res) => {
   try {
     const response = await axios.get(
@@ -17,7 +20,7 @@ router.get("/verify/:reference", async (req, res) => {
     const { status, data } = response.data;
 
     if (status && data.status === "success") {
-      // Optionally update resume paymentStatus here
+      // Update resume payment status
       await Resume.findOneAndUpdate(
         { _id: data.metadata.resumeId },
         { paymentStatus: "success" }
@@ -25,6 +28,25 @@ router.get("/verify/:reference", async (req, res) => {
       return res.json({ success: true, data });
     }
     res.json({ success: false });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * ✅ Check saved payment status (works on page refresh)
+ */
+router.get("/payment-status/:resumeId", async (req, res) => {
+  try {
+    const resume = await Resume.findById(req.params.resumeId);
+    if (!resume) {
+      return res.status(404).json({ success: false, message: "Resume not found" });
+    }
+
+    return res.json({
+      success: true,
+      paid: resume.paymentStatus === "success",
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
