@@ -1,4 +1,4 @@
-add it to the server.js for me, send me full updated: const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const session = require('express-session');
