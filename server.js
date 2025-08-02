@@ -49,6 +49,7 @@ app.use(cors({
   credentials: true,
 }));
 
+// ✅ Middleware
 app.use(express.json());
 app.use(cookieParser());
 
@@ -71,9 +72,9 @@ app.use(passport.session());
 app.use('/api/summarize', summarizeRoute);
 app.use('/auth', authRoute);
 app.use('/api/resumes', resumeRoutes);
-app.use('/api/payments', paymentRoutes);
+app.use('/api/payments', paymentRoutes); // Includes verify, payment-status, webhook
 
-// ✅ NEW: Check payment status
+// ✅ Duplicate "payment-status" check (kept for backward compatibility)
 app.get('/api/payment-status/:resumeId', async (req, res) => {
   try {
     const { resumeId } = req.params;

@@ -58,4 +58,28 @@ router.get("/payment-status/:resumeId", async (req, res) => {
   }
 });
 
+/**
+ * ✅ Paystack Webhook Listener (auto-updates payments)
+ */
+router.post("/webhook", express.json({ type: "*/*" }), async (req, res) => {
+  try {
+    const event = req.body;
+
+    // Confirm it's a successful charge event
+    if (event.event === "charge.success" && event.data.status === "success") {
+      const resumeId = event.data.metadata?.resumeId;
+
+      if (resumeId) {
+        await Resume.findByIdAndUpdate(resumeId, { paymentStatus: "success" });
+        console.log(`✅ Webhook: Payment marked successful for resumeId ${resumeId}`);
+      }
+    }
+
+    res.sendStatus(200); // ✅ Acknowledge receipt
+  } catch (error) {
+    console.error("❌ Webhook processing error:", error.message);
+    res.sendStatus(500);
+  }
+});
+
 module.exports = router;
