@@ -9,6 +9,7 @@ const summarizeRoute = require('./routes/summarize');
 const authRoute = require('./routes/auth');
 const resumeRoutes = require('./routes/resumeRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const paymentStatusRoute = require('./routes/paymentStatus'); // ✅ Added
 const path = require('path');
 
 dotenv.config();
@@ -71,6 +72,7 @@ app.use('/api/summarize', summarizeRoute);
 app.use('/auth', authRoute);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/payments', paymentStatusRoute); // ✅ Added Payment Status
 
 // ✅ Health check route
 app.get('/', (req, res) => {
