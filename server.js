@@ -1,4 +1,4 @@
-const express = require('express');
+add it to the server.js for me, send me full updated: const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const session = require('express-session');
@@ -9,7 +9,6 @@ const summarizeRoute = require('./routes/summarize');
 const authRoute = require('./routes/auth');
 const resumeRoutes = require('./routes/resumeRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
-const Resume = require('./models/Resume');
 const path = require('path');
 
 dotenv.config();
@@ -49,7 +48,6 @@ app.use(cors({
   credentials: true,
 }));
 
-// ✅ Middleware
 app.use(express.json());
 app.use(cookieParser());
 
@@ -72,28 +70,7 @@ app.use(passport.session());
 app.use('/api/summarize', summarizeRoute);
 app.use('/auth', authRoute);
 app.use('/api/resumes', resumeRoutes);
-app.use('/api/payments', paymentRoutes); // Includes verify, payment-status, webhook
-
-// ✅ Duplicate "payment-status" check (kept for backward compatibility)
-app.get('/api/payment-status/:resumeId', async (req, res) => {
-  try {
-    const { resumeId } = req.params;
-    const resume = await Resume.findById(resumeId);
-
-    if (!resume) {
-      return res.status(404).json({ success: false, message: "Resume not found" });
-    }
-
-    res.json({
-      success: true,
-      paid: resume.paymentStatus === "success",
-      status: resume.paymentStatus
-    });
-  } catch (error) {
-    console.error("Error checking payment status:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+app.use('/api/payments', paymentRoutes);
 
 // ✅ Health check route
 app.get('/', (req, res) => {
