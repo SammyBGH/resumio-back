@@ -23,18 +23,22 @@ mongoose.connect(process.env.MONGO_URI, {
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ MongoDB Error:", err));
 
-// ✅ Allowed origins
+// ✅ Allowed origins (frontend only)
 const allowedOrigins = [
   'http://localhost:5173',
   'https://resumio-five.vercel.app',
-  process.env.FRONTEND_URL,
-  'https://resumio-api.onrender.com'
+  process.env.FRONTEND_URL
 ].filter(Boolean);
 
-// ✅ CORS middleware
+// ✅ CORS middleware (allow all Vercel preview URLs dynamically)
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) return callback(null, true); // Allow server-to-server or tools (like Postman)
+
+    if (
+      allowedOrigins.includes(origin) ||
+      /\.vercel\.app$/.test(origin) // ✅ Allow all Vercel preview deployments
+    ) {
       callback(null, true);
     } else {
       console.warn(`❌ CORS blocked for origin: ${origin}`);
